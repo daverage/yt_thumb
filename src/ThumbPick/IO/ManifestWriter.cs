@@ -99,10 +99,7 @@ public sealed class ManifestWriter
             },
             FramesAnalyzed = allFrames.Count(),
             Scores = allFrames.Select(ToFrameScore).ToList(),
-            Top = topManifest,
-            Tools = string.IsNullOrWhiteSpace(appOptions.ResolvedFfmpegPath)
-                ? null
-                : new ManifestTools { FfmpegPath = appOptions.ResolvedFfmpegPath }
+            Top = topManifest
         };
 
         var manifestPath = Path.Combine(baseDir, "manifest.json");
@@ -201,15 +198,6 @@ public record Manifest
 
     [JsonPropertyName("top")]
     public List<ManifestEntry> Top { get; init; } = new();
-
-    [JsonPropertyName("tools")]
-    public ManifestTools? Tools { get; init; }
-}
-
-public record ManifestTools
-{
-    [JsonPropertyName("ffmpeg")]
-    public string? FfmpegPath { get; init; }
 }
 
 public record ManifestVideo
