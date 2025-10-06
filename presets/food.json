@@ -1,0 +1,27 @@
+{
+  "name": "Food",
+  "requireFace": false,
+  "sampling": { "mode": "fps", "value": 2.5 },
+  "weights": {
+    "sharp": 0.18,
+    "exposure": 0.10,
+    "contrast": 0.14,
+    "color": 0.20,
+    "face": 0.05,
+    "centrality": 0.10,
+    "clutter": 0.10,
+    "overlay": 0.06,
+    "motion": 0.04,
+    "time": 0.03
+  },
+  "thresholds": {
+    "sharpMin": 55.0,
+    "Lmin": 22.0,
+    "Lmax": 230.0,
+    "temporalMinGapSec": 1.5,
+    "appearanceMinDist": 0.12
+  },
+  "overlayZones": [
+    { "anchor": "bottom", "x": 0.05, "y": 0.60, "w": 0.90, "h": 0.35 }
+  ]
+}
