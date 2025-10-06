@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+ThumbPick.sln.DotSettings.user
+**/bin/
+**/obj/
+/.idea/
+/.vs/
