@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>ThumbPick.Gui</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ThumbPick\ThumbPick.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\presets\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\cascades\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
