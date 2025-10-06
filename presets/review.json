@@ -1,0 +1,28 @@
+{
+  "name": "Review",
+  "requireFace": true,
+  "sampling": { "mode": "fps", "value": 2.0 },
+  "weights": {
+    "sharp": 0.24,
+    "exposure": 0.07,
+    "contrast": 0.10,
+    "color": 0.10,
+    "face": 0.20,
+    "centrality": 0.12,
+    "clutter": 0.07,
+    "overlay": 0.07,
+    "motion": 0.05,
+    "time": 0.05
+  },
+  "thresholds": {
+    "sharpMin": 60.0,
+    "Lmin": 20.0,
+    "Lmax": 235.0,
+    "temporalMinGapSec": 2.0,
+    "appearanceMinDist": 0.18
+  },
+  "overlayZones": [
+    { "anchor": "left", "x": 0.05, "y": 0.20, "w": 0.20, "h": 0.55 },
+    { "anchor": "right", "x": 0.75, "y": 0.20, "w": 0.20, "h": 0.55 }
+  ]
+}
