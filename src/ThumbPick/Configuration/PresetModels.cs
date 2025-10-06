@@ -120,43 +120,6 @@ public sealed class PresetProvider
         _presetDirectory = presetDirectory ?? Path.Combine(AppContext.BaseDirectory, "presets");
     }
 
-    public string PresetDirectoryPath => _presetDirectory;
-
-    public IReadOnlyList<PresetDefinition> ListPresets()
-    {
-        if (!Directory.Exists(_presetDirectory))
-        {
-            return Array.Empty<PresetDefinition>();
-        }
-
-        var presets = new List<PresetDefinition>();
-        foreach (var file in Directory.EnumerateFiles(_presetDirectory, "*.json", SearchOption.TopDirectoryOnly))
-        {
-            try
-            {
-                using var stream = File.OpenRead(file);
-                var preset = JsonSerializer.Deserialize<PresetDefinition>(stream, _serializerOptions);
-                if (preset == null)
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(preset.Name))
-                {
-                    preset.Name = Path.GetFileNameWithoutExtension(file);
-                }
-
-                presets.Add(preset);
-            }
-            catch
-            {
-                // ignore malformed preset files when listing
-            }
-        }
-
-        return presets;
-    }
-
     public PresetDefinition ResolvePreset(string presetName, string? overridePath)
     {
         var preset = LoadPresetFromFile(presetName);

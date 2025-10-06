@@ -37,11 +37,6 @@ public class AppOptions
     [Option("weights", HelpText = "Inline JSON weights override.")]
     public string? InlineWeightsJson { get; init; }
 
-    [Option("ffmpeg", HelpText = "Path to ffmpeg executable when not co-located with the app.")]
-    public string? FfmpegPath { get; init; }
-
-    public string? ResolvedFfmpegPath { get; private set; }
-
     public double? ExplicitSampleRate => FramesPerSecond ?? (FramesPerMinute.HasValue ? FramesPerMinute / 60.0 : null);
 
     public void Validate()
@@ -79,54 +74,6 @@ public class AppOptions
         if (!Directory.Exists(OutputDirectory))
         {
             Directory.CreateDirectory(OutputDirectory);
-        }
-
-        ResolveFfmpeg();
-    }
-
-    private void ResolveFfmpeg()
-    {
-        if (!string.IsNullOrWhiteSpace(FfmpegPath))
-        {
-            var ffmpegFullPath = Path.GetFullPath(FfmpegPath);
-            if (!File.Exists(ffmpegFullPath))
-            {
-                throw new FileNotFoundException($"ffmpeg not found at {ffmpegFullPath}");
-            }
-
-            ResolvedFfmpegPath = ffmpegFullPath;
-            return;
-        }
-
-        var exeName = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
-        var coLocated = Path.Combine(AppContext.BaseDirectory, exeName);
-        if (File.Exists(coLocated))
-        {
-            ResolvedFfmpegPath = coLocated;
-            return;
-        }
-
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathEnv))
-        {
-            return;
-        }
-
-        foreach (var segment in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            try
-            {
-                var candidate = Path.Combine(segment.Trim(), exeName);
-                if (File.Exists(candidate))
-                {
-                    ResolvedFfmpegPath = candidate;
-                    return;
-                }
-            }
-            catch
-            {
-                // ignore malformed path entries
-            }
         }
     }
 }
