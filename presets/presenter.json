@@ -1,0 +1,28 @@
+{
+  "name": "Presenter",
+  "requireFace": true,
+  "sampling": { "mode": "fps", "value": 2.0 },
+  "weights": {
+    "sharp": 0.25,
+    "exposure": 0.05,
+    "contrast": 0.08,
+    "color": 0.07,
+    "face": 0.25,
+    "centrality": 0.12,
+    "clutter": 0.08,
+    "overlay": 0.08,
+    "motion": 0.02,
+    "time": 0.0
+  },
+  "thresholds": {
+    "sharpMin": 60.0,
+    "Lmin": 20.0,
+    "Lmax": 235.0,
+    "temporalMinGapSec": 2.0,
+    "appearanceMinDist": 0.15
+  },
+  "overlayZones": [
+    { "anchor": "topLeft", "x": 0.05, "y": 0.06, "w": 0.25, "h": 0.25 },
+    { "anchor": "right", "x": 0.70, "y": 0.15, "w": 0.25, "h": 0.40 }
+  ]
+}

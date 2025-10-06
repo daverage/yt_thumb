@@ -1,0 +1,28 @@
+{
+  "name": "Training",
+  "requireFace": true,
+  "sampling": { "mode": "fps", "value": 1.5 },
+  "weights": {
+    "sharp": 0.22,
+    "exposure": 0.08,
+    "contrast": 0.10,
+    "color": 0.08,
+    "face": 0.18,
+    "centrality": 0.12,
+    "clutter": 0.08,
+    "overlay": 0.12,
+    "motion": 0.05,
+    "time": 0.05
+  },
+  "thresholds": {
+    "sharpMin": 60.0,
+    "Lmin": 25.0,
+    "Lmax": 230.0,
+    "temporalMinGapSec": 2.5,
+    "appearanceMinDist": 0.20
+  },
+  "overlayZones": [
+    { "anchor": "center", "x": 0.15, "y": 0.10, "w": 0.70, "h": 0.55 },
+    { "anchor": "bottomRight", "x": 0.70, "y": 0.70, "w": 0.25, "h": 0.25 }
+  ]
+}
