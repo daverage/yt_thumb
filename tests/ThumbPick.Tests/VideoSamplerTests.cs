@@ -1,3 +1,4 @@
+using System;
 using ThumbPick.Core;
 using Xunit;
 

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 using OpenCvSharp;
 using ThumbPick.Configuration;
 using ThumbPick.IO;
@@ -5,6 +9,8 @@ using ThumbPick.Metrics;
 using ThumbPick.Models;
 
 namespace ThumbPick.Core;
+
+public readonly record struct PipelineProgress(string Stage, double Value, double Maximum, string? Detail = null);
 
 public sealed class PipelineSession : IDisposable
 {
@@ -39,8 +45,10 @@ public sealed class PipelineSession : IDisposable
         _writer = writer;
     }
 
-    public void Execute()
+    public void Execute(IProgress<PipelineProgress>? progress = null)
     {
+        progress?.Report(new PipelineProgress("Opening video", 0, 1));
+
         using var capture = new VideoCapture(_options.InputPath);
         if (!capture.IsOpened())
         {
@@ -50,24 +58,45 @@ public sealed class PipelineSession : IDisposable
         var metadata = VideoMetadata.FromCapture(_options.InputPath, capture);
         var sampleRate = _options.ExplicitSampleRate ?? ResolveSamplingRate(metadata);
         var timestamps = _sampler.GenerateTimestamps(metadata.DurationSeconds, sampleRate);
+        var totalFrames = Math.Max(timestamps.Count, 1);
+        var processedFrames = 0;
+
+        progress?.Report(new PipelineProgress("Sampling frames", processedFrames, totalFrames));
 
         foreach (var stamp in timestamps)
         {
-            if (!_sampler.TryReadFrameAt(capture, stamp, out var frame))
+            if (_sampler.TryReadFrameAt(capture, stamp, out var frame))
             {
-                continue;
+                using var mat = frame;
+                var metrics = _metrics.Evaluate(mat, metadata, stamp, _preset);
+                metrics.SavedPath = SaveRawFrame(metrics);
+                metrics.Frame?.Dispose();
+                metrics.Frame = null;
+                _frames.Add(metrics);
             }
 
-            using var mat = frame;
-            var metrics = _metrics.Evaluate(mat, metadata, stamp, _preset);
-            _frames.Add(metrics);
+            processedFrames++;
+            progress?.Report(new PipelineProgress(
+                "Sampling frames",
+                processedFrames,
+                totalFrames,
+                $"Processed {processedFrames} of {totalFrames} frames"));
         }
+
+        if (timestamps.Count == 0)
+        {
+            progress?.Report(new PipelineProgress("Sampling frames", totalFrames, totalFrames, "No frames sampled."));
+        }
+
+        progress?.Report(new PipelineProgress("Scoring frames", 0, 1));
 
         _metrics.Normalize(_frames);
         foreach (var frame in _frames)
         {
             _metrics.ComputeFinalScore(frame, _preset.Weights);
         }
+
+        progress?.Report(new PipelineProgress("Selecting top candidates", 0, 1));
 
         var hardFiltered = _frames.Where(f => !_metrics.IsHardRejected(f, _preset)).ToList();
         _top.AddRange(_ranker.SelectTopCandidates(hardFiltered, _preset, _options.Top));
@@ -78,9 +107,41 @@ public sealed class PipelineSession : IDisposable
             .ThenBy(v => v)
             .ToArray();
 
+        progress?.Report(new PipelineProgress("Fetching neighbors", 0, 1));
+
         var neighborFrames = _neighbors.FetchNeighbors(capture, _top, neighborOffsets, sampleRate, _metrics, _preset, metadata);
 
+        progress?.Report(new PipelineProgress("Writing manifest", 0, 1));
+
         ManifestPath = _writer.WriteOutput(_options, metadata, _frames, _top, neighborFrames, _preset, sampleRate);
+
+        progress?.Report(new PipelineProgress("Completed", 1, 1, ManifestPath));
+
+        foreach (var frame in _frames)
+        {
+            frame.Dispose();
+        }
+    }
+
+    private string SaveRawFrame(FrameMetrics metrics)
+    {
+        var framesDir = Path.Combine(_options.OutputDirectory, "frames");
+        Directory.CreateDirectory(framesDir);
+
+        if (metrics.SavedPath is not null && File.Exists(metrics.SavedPath))
+        {
+            return metrics.SavedPath;
+        }
+
+        if (metrics.Frame is null)
+        {
+            throw new InvalidOperationException("Cannot save frame because the image data is unavailable.");
+        }
+
+        var path = Path.Combine(framesDir, $"f_{metrics.TimeSec:000000.000}.png");
+        Cv2.ImWrite(path, metrics.Frame);
+        metrics.SavedPath = path;
+        return path;
     }
 
     private double ResolveSamplingRate(VideoMetadata metadata)

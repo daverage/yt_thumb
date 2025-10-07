@@ -1,0 +1,15 @@
+LoadFaceDetectors started.
+Haar cascades directory resolved to: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades
+Found 10 cascade files.
+Successfully loaded and added detector: haarcascade_eye from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_eye.xml
+Successfully loaded and added detector: haarcascade_eye_tree_eyeglasses from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_eye_tree_eyeglasses.xml
+Successfully loaded and added detector: haarcascade_frontalcatface from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalcatface.xml
+Successfully loaded and added detector: haarcascade_frontalcatface_extended from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalcatface_extended.xml
+Successfully loaded and added detector: haarcascade_frontalface_alt2 from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalface_alt2.xml
+Successfully loaded and added detector: haarcascade_frontalface_alt from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalface_alt.xml
+Successfully loaded and added detector: haarcascade_frontalface_alt_tree from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalface_alt_tree.xml
+Successfully loaded and added detector: haarcascade_frontalface_default from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_frontalface_default.xml
+Successfully loaded and added detector: haarcascade_upperbody from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_upperbody.xml
+Successfully loaded and added detector: haarcascade_smile from D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\cascades\haarcascade_smile.xml
+Finished loading. Total detectors loaded: 10
+LoadFaceDetectors finished.

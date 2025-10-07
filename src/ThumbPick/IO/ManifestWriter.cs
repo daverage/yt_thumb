@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OpenCvSharp;
@@ -29,15 +30,11 @@ public sealed class ManifestWriter
         Directory.CreateDirectory(framesDir);
         Directory.CreateDirectory(candidatesDir);
 
-        foreach (var frame in allFrames)
-        {
-            frame.SavedPath = SaveFrame(frame.Frame, framesDir, frame.TimeSec);
-        }
 
         var topManifest = new List<ManifestEntry>();
         foreach (var frame in topFrames)
         {
-            var mainPath = SaveCandidate(frame.Frame, candidatesDir, frame.TimeSec, "main");
+            var mainPath = SaveCandidate(frame, candidatesDir, frame.TimeSec, "main", disposeSource: true);
             var manifestEntry = new ManifestEntry
             {
                 Time = frame.TimeSec,
@@ -52,32 +49,18 @@ public sealed class ManifestWriter
                 foreach (var neighbor in neighborList)
                 {
                     var suffix = neighbor.offset >= 0 ? $"p{neighbor.offset}" : $"m{-neighbor.offset}";
-                    var neighborPath = SaveCandidate(neighbor.metrics.Frame, candidatesDir, frame.TimeSec, suffix);
+                    var neighborPath = SaveCandidate(neighbor.metrics, candidatesDir, frame.TimeSec, suffix, disposeSource: true);
                     manifestEntry.Neighbors.Add(new NeighborEntry
                     {
                         Offset = neighbor.offset,
                         Path = neighborPath
                     });
-                    neighbor.metrics.Frame?.Dispose();
-                    neighbor.metrics.Frame = null;
-                    neighbor.metrics.Downscaled?.Dispose();
-                    neighbor.metrics.Downscaled = null;
                 }
             }
 
+            frame.Downscaled?.Dispose();
+            frame.Downscaled = null;
             topManifest.Add(manifestEntry);
-            frame.Frame?.Dispose();
-            frame.Frame = null;
-            frame.Downscaled?.Dispose();
-            frame.Downscaled = null;
-        }
-
-        foreach (var frame in allFrames)
-        {
-            frame.Frame?.Dispose();
-            frame.Frame = null;
-            frame.Downscaled?.Dispose();
-            frame.Downscaled = null;
         }
 
         var manifest = new Manifest
@@ -107,28 +90,54 @@ public sealed class ManifestWriter
         return manifestPath;
     }
 
-    private static string SaveFrame(Mat? frame, string baseDir, double time)
+    private static string SaveCandidate(FrameMetrics metrics, string baseDir, double time, string suffix, bool disposeSource)
     {
-        if (frame == null)
-        {
-            return string.Empty;
-        }
+        Directory.CreateDirectory(baseDir);
 
-        var fileName = Path.Combine(baseDir, $"f_{time:000000.000}.png");
-        Cv2.ImWrite(fileName, frame);
-        return fileName;
-    }
-
-    private static string SaveCandidate(Mat? frame, string baseDir, double time, string suffix)
-    {
-        if (frame == null)
+        var frame = AcquireFrame(metrics, out var ownsReference);
+        if (frame is null)
         {
             return string.Empty;
         }
 
         var fileName = Path.Combine(baseDir, $"c_{time:000000.000}_{suffix}.png");
-        Cv2.ImWrite(fileName, frame);
+
+        try
+        {
+            Cv2.ImWrite(fileName, frame);
+        }
+        finally
+        {
+            if (ownsReference)
+            {
+                frame.Dispose();
+            }
+
+            if (disposeSource)
+            {
+                metrics.Dispose();
+            }
+        }
+
         return fileName;
+    }
+
+    private static Mat? AcquireFrame(FrameMetrics metrics, out bool ownsReference)
+    {
+        if (metrics.Frame is not null)
+        {
+            ownsReference = false;
+            return metrics.Frame;
+        }
+
+        if (!string.IsNullOrWhiteSpace(metrics.SavedPath) && File.Exists(metrics.SavedPath))
+        {
+            ownsReference = true;
+            return Cv2.ImRead(metrics.SavedPath);
+        }
+
+        ownsReference = false;
+        return null;
     }
 
     private static CropSuggestion ComputeSuggestedCrop(VideoMetadata metadata)

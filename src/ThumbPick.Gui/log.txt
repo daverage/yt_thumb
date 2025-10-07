@@ -1,0 +1,3 @@
+Application starting
+MainWindow constructor started
+MainWindow constructor finished

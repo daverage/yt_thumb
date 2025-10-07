@@ -2,7 +2,7 @@ using OpenCvSharp;
 
 namespace ThumbPick.Models;
 
-public class FrameMetrics
+public class FrameMetrics : IDisposable
 {
     public double TimeSec { get; set; }
     public Mat? Frame { get; set; }
@@ -34,4 +34,21 @@ public class FrameMetrics
     public Rect[] Faces { get; set; } = Array.Empty<Rect>();
 
     public string? SavedPath { get; set; }
+
+    public bool HasFrame => Frame is not null;
+
+    public void Dispose() => Dispose(true);
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
+        Frame?.Dispose();
+        Frame = null;
+        Downscaled?.Dispose();
+        Downscaled = null;
+    }
 }

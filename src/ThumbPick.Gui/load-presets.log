@@ -1,0 +1,14 @@
+LoadPresets started.
+Preset directory found: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets
+Found preset file: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets\food.json
+Added preset: food (Food)
+Found preset file: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets\product.json
+Added preset: product (Product)
+Found preset file: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets\presenter.json
+Added preset: presenter (Presenter)
+Found preset file: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets\training.json
+Added preset: training (Training)
+Found preset file: D:\GitHub\yt_thumb\src\ThumbPick.Gui\bin\Debug\net8.0-windows\presets\review.json
+Added preset: review (Review)
+Loaded 5 presets.
+LoadPresets finished successfully.

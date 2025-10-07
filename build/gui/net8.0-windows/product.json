@@ -1,0 +1,28 @@
+{
+  "name": "Product",
+  "requireFace": false,
+  "sampling": { "mode": "fps", "value": 1.5 },
+  "weights": {
+    "sharp": 0.20,
+    "exposure": 0.08,
+    "contrast": 0.12,
+    "color": 0.12,
+    "face": 0.10,
+    "centrality": 0.12,
+    "clutter": 0.12,
+    "overlay": 0.09,
+    "motion": 0.03,
+    "time": 0.02
+  },
+  "thresholds": {
+    "sharpMin": 55.0,
+    "Lmin": 18.0,
+    "Lmax": 240.0,
+    "temporalMinGapSec": 1.5,
+    "appearanceMinDist": 0.12
+  },
+  "overlayZones": [
+    { "anchor": "center", "x": 0.35, "y": 0.15, "w": 0.30, "h": 0.70 },
+    { "anchor": "topRight", "x": 0.65, "y": 0.05, "w": 0.30, "h": 0.25 }
+  ]
+}

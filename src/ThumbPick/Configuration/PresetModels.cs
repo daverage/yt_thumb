@@ -120,6 +120,16 @@ public sealed class PresetProvider
         _presetDirectory = presetDirectory ?? Path.Combine(AppContext.BaseDirectory, "presets");
     }
 
+    public string[] GetPresetFiles()
+    {
+        if (!Directory.Exists(_presetDirectory))
+        {
+            return Array.Empty<string>();
+        }
+
+        return Directory.GetFiles(_presetDirectory, "*.json");
+    }
+
     public PresetDefinition ResolvePreset(string presetName, string? overridePath)
     {
         var preset = LoadPresetFromFile(presetName);

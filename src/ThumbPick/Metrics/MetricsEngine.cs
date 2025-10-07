@@ -1,3 +1,6 @@
+using System.IO;
+using System;
+using System.Collections.Generic;
 using OpenCvSharp;
 using ThumbPick.Configuration;
 using ThumbPick.Models;
@@ -9,20 +12,47 @@ public sealed class MetricsEngine : IDisposable
     private readonly MetricsConfiguration _config;
     private readonly CascadeClassifier? _frontalCascade;
     private readonly CascadeClassifier? _profileCascade;
+    private readonly CascadeClassifier? _glassesCascade;
+    private readonly CascadeClassifier? _smileCascade;
+    private readonly List<string> _warnings = new();
     private Mat? _previousGray;
     private readonly object _lock = new();
+
+    public IReadOnlyList<string> Warnings => _warnings;
 
     public MetricsEngine(MetricsConfiguration config)
     {
         _config = config;
         _frontalCascade = LoadCascade(config.FrontalCascadeName);
         _profileCascade = LoadCascade(config.ProfileCascadeName);
+        _glassesCascade = LoadCascade(config.GlassesCascadeName);
+        _smileCascade = LoadCascade(config.SmileCascadeName);
     }
 
     private CascadeClassifier? LoadCascade(string fileName)
     {
         var path = Path.Combine(_config.CascadeDirectory, fileName);
-        return File.Exists(path) ? new CascadeClassifier(path) : null;
+        if (!File.Exists(path))
+        {
+            RecordWarning($"Cascade classifier '{fileName}' was not found in '{_config.CascadeDirectory}'. Face detection accuracy may be reduced.");
+            return null;
+        }
+
+        try
+        {
+            return new CascadeClassifier(path);
+        }
+        catch (Exception ex)
+        {
+            RecordWarning($"Failed to load cascade '{fileName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    private void RecordWarning(string message)
+    {
+        _warnings.Add(message);
+        Console.Error.WriteLine($"[ThumbPick] Warning: {message}");
     }
 
     public FrameMetrics Evaluate(Mat frame, VideoMetadata metadata, double timestamp, PresetDefinition preset)
@@ -163,7 +193,7 @@ public sealed class MetricsEngine : IDisposable
         using var lap = new Mat();
         Cv2.Laplacian(gray, lap, MatType.CV_64F);
         Cv2.MeanStdDev(lap, out _, out var std);
-        var sigma = std.Get<double>(0);
+        var sigma = std.Val0; // Correct way to access the value from Scalar
         return sigma * sigma;
     }
 
@@ -174,15 +204,16 @@ public sealed class MetricsEngine : IDisposable
         var channels = lab.Split();
         using var l = channels[0];
         Cv2.MeanStdDev(l, out var mean, out var std);
-        var exposure = mean.Get<double>(0);
-        var contrast = std.Get<double>(0);
+        // Correct access using Val0 property
+        var exposure = mean.Val0;
+        var contrast = std.Val0;
         foreach (var ch in channels)
         {
             ch.Dispose();
         }
-
         return (exposure, contrast);
     }
+
 
     private static double ComputeColorfulness(Mat bgr)
     {
@@ -199,7 +230,7 @@ public sealed class MetricsEngine : IDisposable
         Cv2.Absdiff(y, b, yb);
         Cv2.MeanStdDev(rg, out _, out var s1);
         Cv2.MeanStdDev(yb, out _, out var s2);
-        var colorfulness = s1.Get<double>(0) + 0.3 * s2.Get<double>(0);
+        var colorfulness = s1.Val0 + 0.3 * s2.Val0; // Corrected access to Scalar values
         foreach (var ch in channels)
         {
             ch.Dispose();
@@ -208,9 +239,11 @@ public sealed class MetricsEngine : IDisposable
         return colorfulness;
     }
 
+
+
     private Rect[] DetectFaces(Mat gray)
     {
-        if (_frontalCascade == null && _profileCascade == null)
+        if (_frontalCascade == null && _profileCascade == null && _glassesCascade == null)
         {
             return Array.Empty<Rect>();
         }
@@ -218,18 +251,61 @@ public sealed class MetricsEngine : IDisposable
         var faces = new List<Rect>();
         lock (_lock)
         {
-            if (_frontalCascade != null)
+            switch (_config.FaceDetector)
             {
-                faces.AddRange(_frontalCascade.DetectMultiScale(gray, 1.1, 5, HaarDetectionTypes.ScaleImage, new Size(60, 60)));
-            }
+                case FaceDetectionMode.Default:
+                    if (_frontalCascade != null)
+                    {
+                        faces.AddRange(_frontalCascade.DetectMultiScale(gray, 1.1, 5, HaarDetectionTypes.ScaleImage, new Size(60, 60)));
+                    }
 
-            if (_profileCascade != null)
-            {
-                faces.AddRange(_profileCascade.DetectMultiScale(gray, 1.1, 4, HaarDetectionTypes.ScaleImage, new Size(60, 60)));
+                    if (_profileCascade != null)
+                    {
+                        faces.AddRange(_profileCascade.DetectMultiScale(gray, 1.1, 4, HaarDetectionTypes.ScaleImage, new Size(60, 60)));
+                    }
+                    break;
+                case FaceDetectionMode.Glasses:
+                    if (_glassesCascade != null)
+                    {
+                        var glassesHits = _glassesCascade.DetectMultiScale(gray, 1.05, 3, HaarDetectionTypes.ScaleImage, new Size(30, 30));
+                        foreach (var eyeRegion in glassesHits)
+                        {
+                            faces.Add(ExpandEyeRegionToFace(eyeRegion, gray.Size()));
+                        }
+                    }
+                    break;
+                case FaceDetectionMode.Smile:
+                    if (_smileCascade != null)
+                    {
+                        faces.AddRange(_smileCascade.DetectMultiScale(gray, 1.1, 20, HaarDetectionTypes.ScaleImage, new Size(30, 30)));
+                    }
+                    break;
             }
         }
 
-        return faces.Distinct().ToArray();
+        return faces
+            .Select(face => ClampRectToBounds(face, gray.Size()))
+            .Distinct()
+            .ToArray();
+    }
+
+    private static Rect ClampRectToBounds(Rect rect, Size bounds)
+    {
+        var x = Math.Clamp(rect.X, 0, Math.Max(0, bounds.Width - 1));
+        var y = Math.Clamp(rect.Y, 0, Math.Max(0, bounds.Height - 1));
+        var width = Math.Clamp(rect.Width, 1, bounds.Width - x);
+        var height = Math.Clamp(rect.Height, 1, bounds.Height - y);
+        return new Rect(x, y, width, height);
+    }
+
+    private static Rect ExpandEyeRegionToFace(Rect eyeRegion, Size bounds)
+    {
+        var width = (int)Math.Round(eyeRegion.Width * 2.2);
+        var height = (int)Math.Round(eyeRegion.Height * 3.2);
+        var x = (int)Math.Round(eyeRegion.X - eyeRegion.Width * 0.6);
+        var y = (int)Math.Round(eyeRegion.Y - eyeRegion.Height * 1.2);
+
+        return ClampRectToBounds(new Rect(x, y, width, height), bounds);
     }
 
     private static double ComputeFaceScore(Rect[] faces, Size frameSize)
@@ -310,12 +386,13 @@ public sealed class MetricsEngine : IDisposable
         using var sobel = new Mat();
         Cv2.Sobel(zone, sobel, MatType.CV_16S, 1, 1);
         Cv2.MeanStdDev(sobel, out _, out var std);
-        var edgesStd = std.Get<double>(0);
+        var edgesStd = std.Val0; // Correct way to access the value
 
         var faceOverlap = faces.Any(face => IntersectionOverUnion(face, roi) > 0.1) ? 1.0 : 0.0;
         var busyScore = Math.Min(1.0, edgesStd / 100.0);
         return (busyScore + faceOverlap) / 2.0;
     }
+
 
     private static double IntersectionOverUnion(Rect a, Rect b)
     {
@@ -354,10 +431,15 @@ public sealed class MetricsEngine : IDisposable
         using var diff = new Mat();
         Cv2.Absdiff(gray, _previousGray, diff);
         Cv2.MeanStdDev(diff, out _, out var std);
+
+        // Dispose of the previous frame before replacing it
         _previousGray.Dispose();
         _previousGray = gray.Clone();
-        return std.Get<double>(0);
+
+        // Access the value correctly using Val0
+        return std.Val0;
     }
+
 
     private static double ComputeTimestampPrior(double timestamp, double duration)
     {
@@ -379,6 +461,8 @@ public sealed class MetricsEngine : IDisposable
     {
         _frontalCascade?.Dispose();
         _profileCascade?.Dispose();
+        _glassesCascade?.Dispose();
+        _smileCascade?.Dispose();
         _previousGray?.Dispose();
     }
 }
